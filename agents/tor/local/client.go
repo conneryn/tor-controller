@@ -98,7 +98,7 @@ func (m *LocalManager) Run() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m.daemon.SetContext(ctx)
+	m.daemon.Start(ctx)
 
 	err := os.Chmod("/run/tor/service", 0700)
 	if err != nil {

@@ -90,9 +90,6 @@ func (c *Controller) sync(key string) error {
 			}
 
 			c.localManager.daemon.Reload()
-		} else {
-			// Config was already set correctly, lets just ensure the daemon is (still) running.
-			c.localManager.daemon.EnsureRunning()
 		}
 
 		// err = c.updateOnionBalancedServiceStatus(&onionBalancedService)

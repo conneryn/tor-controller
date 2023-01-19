@@ -11,18 +11,13 @@ import (
 
 type Tor struct {
 	cmd *exec.Cmd
-	ctx context.Context
 }
 
-func (t *Tor) SetContext(ctx context.Context) {
-	t.ctx = ctx
-}
-
-func (t *Tor) Start() {
+func (t *Tor) Start(ctx context.Context) {
 	go func() {
 		for {
 			fmt.Println("starting tor...")
-			t.cmd = exec.CommandContext(t.ctx,
+			t.cmd = exec.CommandContext(ctx,
 				"tor",
 				"-f", "/run/tor/torfile",
 				// "--allow-missing-torrc",
@@ -35,7 +30,16 @@ func (t *Tor) Start() {
 				fmt.Print(err)
 			}
 			t.cmd.Wait()
-			time.Sleep(time.Second * 3)
+
+			// Check if ctx is done
+			select {
+			case <-ctx.Done():
+				fmt.Println("terminating tor...")
+				return
+			default:
+				// sleep, then restart
+				time.Sleep(time.Second * 3)
+			}
 		}
 	}()
 }
@@ -44,7 +48,7 @@ func (t *Tor) Reload() {
 
 	if t.cmd == nil || (t.cmd.ProcessState != nil && t.cmd.ProcessState.Exited()) {
 		// tor is not running
-		t.Start()
+		fmt.Println("reloading tor, but it's not currently running...")
 	} else {
 
 		// restart if already running

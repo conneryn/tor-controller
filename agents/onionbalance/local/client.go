@@ -98,7 +98,7 @@ func (m *LocalManager) Run() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m.daemon.SetContext(ctx)
+	m.daemon.Start(ctx)
 
 	// start watching for API server events that trigger applies
 	m.onionBalancedServiceCRDWatcher(namespace)

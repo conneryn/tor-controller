@@ -11,18 +11,13 @@ import (
 
 type OnionBalance struct {
 	cmd *exec.Cmd
-	ctx context.Context
 }
 
-func (t *OnionBalance) SetContext(ctx context.Context) {
-	t.ctx = ctx
-}
-
-func (t *OnionBalance) Start() {
+func (t *OnionBalance) Start(ctx context.Context) {
 	go func() {
 		for {
 			fmt.Println("starting onionbalance...")
-			t.cmd = exec.CommandContext(t.ctx,
+			t.cmd = exec.CommandContext(ctx,
 				"onionbalance",
 				"--config", "/run/onionbalance/config.yaml",
 				// "--verbosity", "debug",
@@ -37,31 +32,29 @@ func (t *OnionBalance) Start() {
 			if err != nil {
 				fmt.Print(err)
 			}
+
 			t.cmd.Wait()
-			time.Sleep(time.Second * 3)
+
+			// Check if ctx is done (shutting down)
+			select {
+			case <-ctx.Done():
+				fmt.Println("terminating onionbalance...")
+				return
+			default:
+				// sleep, then restart
+				time.Sleep(time.Second * 3)
+			}
 		}
 	}()
-}
-
-func (t *OnionBalance) IsRunning() bool {
-	return t.cmd != nil && (t.cmd.ProcessState == nil || !t.cmd.ProcessState.Exited())
-}
-
-func (t *OnionBalance) EnsureRunning() {
-	if !t.IsRunning() {
-		fmt.Println("onionbalance is not running...")
-		t.Start()
-	}
 }
 
 func (t *OnionBalance) Reload() {
 	fmt.Println("reloading onionbalance...")
 
-	if t.IsRunning() {
+	if t.cmd != nil && (t.cmd.ProcessState == nil || !t.cmd.ProcessState.Exited()) {
 		fmt.Println("stopping existing onionbalance...")
 		t.cmd.Process.Signal(syscall.SIGHUP)
-		t.cmd.Wait()
+	} else {
+		fmt.Println("onionbalance is not currently running...")
 	}
-
-	t.Start()
 }
